@@ -169,6 +169,7 @@ class AdminController extends Controller
         $currentDate = date('Y-m-d');
         $patient = new Patient();
         $prescription = new Prescription();
+        // return $request->all();
 
 
         // return $request->all();
@@ -204,6 +205,7 @@ class AdminController extends Controller
                         $patient_medicine_detail->when_to_take = $request->when_to_take[$i];
                         $patient_medicine_detail->before_after = $request->before_after[$i];
                         $patient_medicine_detail->days = $request->days[$i];
+                        $patient_medicine_detail->checkup_date = $currentDate;
                         $execute = $patient_medicine_detail->save();
                     }
                 }
@@ -211,6 +213,35 @@ class AdminController extends Controller
                     return redirect()->to('payment/' . $patient_id);
                     // return $patient_id;
                 }
+            }
+        } else {
+            $prescription->patient_id = $request->patient_id;
+            $prescription->blood_pressure = $request->bld_pressure;
+            $prescription->sugar = $request->sugar;
+            $prescription->weight = $request->weight;
+            $prescription->disease_name = $request->disease_name;
+            $prescription->symptoms = $request->symptoms;
+            $prescription->checkup_date = $currentDate;
+            $prescription->patient_status = "1";
+            $execute_prescription = $prescription->save();
+            if ($execute_prescription) {
+                $prescription_id = DB::getPdo()->lastInsertId();
+                for ($i = 0; $i < count($request->medicine_name); $i++) {
+                    $patient_medicine_detail = new PatientMedicineDetail();
+                    $patient_medicine_detail->patient_id = $request->patient_id;
+                    $patient_medicine_detail->prescription_id = $prescription_id;
+                    $patient_medicine_detail->medicine_name = $request->medicine_name[$i];
+                    $patient_medicine_detail->quantity = $request->quantity[$i];
+                    $patient_medicine_detail->when_to_take = $request->when_to_take[$i];
+                    $patient_medicine_detail->before_after = $request->before_after[$i];
+                    $patient_medicine_detail->days = $request->days[$i];
+                    $patient_medicine_detail->checkup_date = $currentDate;
+                    $execute = $patient_medicine_detail->save();
+                }
+            }
+            if ($execute) {
+                return redirect()->to('payment/' . $request->patient_id);
+                // return $request->patient_id;
             }
         }
     }
@@ -240,11 +271,12 @@ class AdminController extends Controller
 
     public function print_prescription($last_patient_id)
     {
+        $currentDate = date('Y-m-d');
 
         $hospital_details = HospitalDetail::all();
         $get_patient_details = Patient::where('id', '=', $last_patient_id)->first();
         $get_patient_prescription = Prescription::where('patient_id', '=', $last_patient_id)->first();
-        $get_medicine_details = PatientMedicineDetail::where('patient_id', '=', $last_patient_id)->get();
+        $get_medicine_details = PatientMedicineDetail::where('patient_id', '=', $last_patient_id)->where('checkup_date', '=',  $currentDate)->get();
         // return   $get_medicine_details;
         // return $hospital_details;
 
@@ -301,17 +333,7 @@ class AdminController extends Controller
         return $result;
     }
 
-    public function search()
-    {
-        return view('pages/search');
-    }
-    public function autocomplete(Request $request)
-    {
-        $datas = Patient::select("patient_name")
-            ->where("patient_name", "LIKE", "%{$request->terms}%")
-            ->get();
-        return response()->json($datas);
-    }
+
 
 
 
